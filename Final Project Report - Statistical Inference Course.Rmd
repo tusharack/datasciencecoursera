@@ -1,0 +1,171 @@
+---
+title: "Final Project Report - Statistical Inference Course"
+author: "Srikanth"
+date: "Sunday, May 24, 2015"
+output: pdf_document
+---
+
+#Part 1: Background Introduction
+
+The following is the introduction of the first Part of the assignment:
+
+The exponential distribution can be simulated in R with rexp(n, lambda) where lambda is the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also also 1/lambda. Set lambda = 0.2 for all of the simulations. In this simulation, you will investigate the distribution of averages of 40 exponential(0.2)s. Note that you will need to do a thousand or so simulated averages of 40 exponentials.
+
+Illustrate via simulation and associated explanatory text the properties of the distribution of the mean of 40 exponential(0.2)s. You should 1. Show where the distribution is centered at and compare it to the theoretical center of the distribution. 2. Show how variable it is and compare it to the theoretical variance of the distribution. 3. Show that the distribution is approximately normal.
+
+Note that for point 3, focus on the difference between the distribution of a large collection of random exponentials and the distribution of a large collection of averages of 40 exponentials.
+
+As a motivating example, compare the distribution of 1000 random uniforms
+
+```{r random}
+hist(runif(1000))
+```
+
+and the distribution of 1000 averages of 40 random uniforms
+
+```{r 40 random}
+mns = NULL
+for (i in 1 : 1000) mns = c(mns, mean(runif(40)))
+hist(mns)
+```
+
+This exercise is asking you to use your knowledge of the theory given in class to relate the two distributions.
+
+#Exercise resolution
+
+Start by running a 1000 simulations of 40 exponentials.
+
+```{r 1000 simulations}
+
+set.seed(555)
+lambda <- 0.2 
+nosim <- 1:1000 # Number of Simulations/rows
+n <- 40 
+
+#sd(apply(matrix(rnorm(nosim*n), nosim), 1, mean))
+#Create a matrix of simulated values:
+expMatrix <- data.frame(x = sapply(nosim, function(x) {mean(rexp(n, lambda))}))
+head(expMatrix)
+```
+
+
+1. Show where the distribution is centered at and compare it to the theoretical center of the distribution.
+
+Center of simulated distribution is:
+
+```{r mean}
+simMeanExp <- apply(expMatrix, 2, mean)
+simMeanExp
+```
+
+Which is very close to the expected theoretical center of the distribution:
+
+```{r expected mean}
+theoMeanExp <- 1/lambda
+theoMeanExp
+```
+
+2. Show how variable it is and compare it to the theoretical variance of the distribution.
+
+As for the simulated Standard Deviation and Variance are:
+
+```{r variance}
+simSDExp <- sd((expMatrix$x)) 
+simSDExp
+simVarExp <- var(expMatrix$x)
+simVarExp
+```
+
+In comparison, the expected theretical SD and Variance are:
+
+```{r expected SD}
+theoSDExp <- (1/lambda)/sqrt(n)
+theoSDExp
+theoVarExp <- theoSDExp^2
+theoVarExp
+```
+
+We can safely conclude that the differences are minimal, as expected.
+
+3. Show that the distribution is approximately normal. In order to understand if distribution is approximately normal, ploting helps.
+
+```{r plot1}
+library(ggplot2)
+ggplot(data = expMatrix, aes(x = x)) + 
+    geom_histogram(aes(y=..density..), binwidth = 0.20) +
+    stat_function(fun = dnorm, arg = list(mean = theoMeanExp, sd = sd(expMatrix$x)))
+```
+
+appears to aproximate to nearly Normal.
+
+#Part 2: Background Introduction
+
+The following is the introduction of the second part of the assignment:
+
+Now in the second portion of the class, we’re going to analyze the ToothGrowth data in the R datasets package. Load the ToothGrowth data and perform some basic exploratory data analyses Provide a basic summary of the data. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there’s other approaches worth considering) State your conclusions and the assumptions needed for your conclusions.
+
+Some criteria that you will be evaluated on: Did you perform an exploratory data analysis of at least a single plot or table highlighting basic features of the data? Did the student perform some relevant confidence intervals and/or tests? Were the results of the tests and/or intervals interpreted in the context of the problem correctly? Did the student describe the assumptions needed for their conclusions?
+
+##Exercise resolution
+
+1. Load the ToothGrowth data and perform some basic exploratory data analyses
+
+Start by loading the dataset.
+
+```{r dataload}
+library(datasets)
+data(ToothGrowth)
+```
+
+Exploratory analysis
+
+The command data() provides a quick summary about each dataset. In this case, we can get more information about the ToothGrowth dataset as follows: “The Effect of Vitamin C on Tooth Growth in Guinea Pigs”. Furthermore about this package: “The response is the length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods (orange juice or ascorbic acid).”
+
+We can visualize the dataset easily with a boxplot and coplot:
+
+```{r boxplot}
+boxplot(len ~ supp * dose, data=ToothGrowth, ylab="Tooth Length", main="Comparing Tooth Growth between different supplements and different dosis")
+require(graphics)
+coplot(len ~ dose | supp, data = ToothGrowth, panel = panel.smooth,
+       xlab = "Comparing Tooth Growth between different supplements and different dosis")
+```
+
+2. Provide a basic summary of the data.
+
+So first indication from the plotting is that the average of the tooth length seems to increase with the supplement dosis. In other words, there seems to be a relationship between applying a supplement dosis and the tooth growth. Further data summaries:
+
+```{r data summaries}
+head(ToothGrowth)
+nrow(ToothGrowth)
+summary(ToothGrowth)
+table(ToothGrowth$supp,ToothGrowth$dose)
+```
+
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there’s other approaches worth considering)
+
+Since the sample size is small, going to use T distribution.
+
+```{r t ditribution}
+t.test(len ~ supp, data = ToothGrowth)
+```
+
+Comparing the difference between the two supplements yields no convincing evidence to reject the null hypothesis, since the p-value is bigger than the 5% significance level.
+
+However, for this dataset it is important to also compare the differences between the the different dosis level, since bigger dosis may yield contradicting evidence.
+
+```{r differences}
+t.test(ToothGrowth$len, ToothGrowth$dose)
+```
+
+Comparing the difference between the two supplements yields convincing evidence to reject the null hypothesis, since the p-value aproximates to 0, and is thus substancially smaller in comparison to the significance level.
+
+4. State your conclusions and the assumptions needed for your conclusions.
+
+As already stated, there is no convincing evidence that there is a difference between the two type of supplements based on the existing datasets and T statistics. Thus we fail to reject the Null hypothesis.
+
+However, there is convincing evidence that there is a difference between the dosis level, and the growth. Thus we reject the Null hypothesis in favour of the alternative hypothesis.
+
+
+
+
+
